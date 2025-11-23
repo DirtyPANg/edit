@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Code Studio v7.0 (Gemini Powered)</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --text-color: #d4d4d4;
+            --border-color: #3e3e42;
+            --accent-color: #007acc; /* VS Code Blue */
+            --accent-hover: #0062a3;
+            --success-color: #4ec9b0;
+            --warning-color: #cca700;
+            --error-color: #f48771;
+            --item-hover: #2a2d2e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #2d2d2d;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            height: 50px;
+            flex: none;
+            overflow-x: auto;
+        }
+
+        h1 { 
+            margin: 0; font-size: 1rem; color: white; white-space: nowrap; 
+            font-weight: 700; margin-right: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Button Group */
+        .btn-group { display: flex; gap: 5px; }
+
+        .btn-tool {
+            background-color: #3c3c3c;
+            border: 1px solid #555;
+            color: #ccc;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .btn-tool:hover { background-color: #505050; border-color: var(--accent-color); color: white; }
+
+        /* API Input Area */
+        .api-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-end;
+            min-width: 200px;
+        }
+
+        input[type="password"] {
+            background-color: #1e1e1e;
+            border: 1px solid #555;
+            color: white;
+            padding: 5px 8px;
+            border-radius: 3px;
+            height: 28px;
+            font-size: 12px;
+            width: 120px;
+            transition: width 0.3s;
+        }
+        input[type="password"]:focus { width: 220px; border-color: var(--accent-color); }
+        
+        select {
+            background-color: #252526;
+            border: 1px solid #555;
+            color: white;
+            padding: 4px 5px;
+            border-radius: 3px;
+            height: 30px;
+            font-size: 12px;
+            max-width: 160px;
+            cursor: pointer;
+        }
+
+        /* --- Main Layout --- */
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 50px);
+            overflow: hidden;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            min-width: 0;
+            padding: 8px;
+            gap: 8px;
+            position: relative;
+        }
+        .panel:last-child { border-right: none; padding: 0; }
+
+        .panel-header {
+            font-weight: 600;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            flex: none;
+            height: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-header-actions { display: flex; gap: 5px; }
+
+        textarea {
+            flex: 1;
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            line-height: 1.4;
+        }
+        textarea:focus { border-color: var(--accent-color); }
+
+        /* --- Prompt Area --- */
+        .prompt-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: none;
+            background: #222;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        /* Image Preview */
+        #imagePreviewContainer {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+        .img-thumb-wrapper {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .img-thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .img-remove {
+            position: absolute; top: 0; right: 0;
+            background: rgba(0,0,0,0.7); color: white;
+            border: none; cursor: pointer;
+            font-size: 10px; width: 16px; height: 16px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .prompt-row { display: flex; gap: 8px; min-height: 40px; }
+
+        .prompt-tools-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            justify-content: flex-start;
+        }
+
+        #promptInput {
+            flex: 1;
+            height: auto;
+            min-height: 40px;
+            background-color: #333;
+            border: 1px solid #555;
+            font-family: 'Segoe UI', sans-serif;
+            white-space: pre-wrap;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        #runBtn {
+            width: 80px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 4px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        #runBtn:hover { background-color: var(--accent-hover); }
+
+        /* Context Options */
+        .context-options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: #888;
+            flex-wrap: wrap;
+        }
+        
+        .context-options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+            background: #2d2d2d;
+            padding: 3px 8px;
+            border-radius: 3px;
+            border: 1px solid #444;
+        }
+        
+        .context-options input[type="checkbox"] { accent-color: var(--accent-color); }
+        .char-counter { margin-left: auto; font-family: monospace; }
+
+        /* Utility Buttons */
+        button.btn-secondary {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 0 10px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 11px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        button.btn-secondary:hover { opacity: 0.9; background-color: #555; }
+
+        /* --- Preview & Logs --- */
+        #previewContainer {
+            flex: 1;
+            background-color: white;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        iframe { width: 100%; height: 100%; border: none; display: block; }
+
+        #logArea {
+            height: 100px;
+            background-color: #111;
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+            flex: none;
+        }
+        
+        #historyArea {
+            flex: 1;
+            background-color: #1e1e1e;
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            color: #ccc;
+        }
+        .history-item:hover { background-color: var(--item-hover); color: white; }
+        .history-item .time { color: #666; font-size: 10px; }
+        .history-item .tag { 
+            background: #333; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 8px;
+            text-transform: uppercase; font-weight: bold;
+        }
+
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #222; word-wrap: break-word; }
+        .log-success { color: var(--success-color); }
+        .log-error { color: var(--error-color); }
+        .log-info { color: #9cdcfe; }
+        .log-warn { color: var(--warning-color); }
+        .log-js-error { color: #ff6b6b; background: rgba(255,0,0,0.1); }
+
+        #aiResponse {
+            height: 60px;
+            flex: none;
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        /* Loading Toast */
+        .loading-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #252526;
+            border: 1px solid var(--accent-color);
+            border-left: 4px solid var(--accent-color);
+            padding: 12px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .mini-spinner {
+            width: 16px; height: 16px;
+            border: 2px solid #555;
+            border-top: 2px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-size: 0.9rem; font-weight: bold; color: #fff; }
+
+        #fileImportInput, #imgUploadInput { display: none; }
+
+        /* --- Mobile Layout --- */
+        @media (max-width: 768px) {
+            header { flex-wrap: wrap; height: auto; padding: 10px; gap: 10px; }
+            h1 { width: 100%; text-align: center; margin-bottom: 5px; }
+            .api-input-group { width: 100%; justify-content: space-between; }
+            input[type="password"] { width: 80px; }
+            input[type="password"]:focus { width: 150px; }
+
+            .main-container { flexDirection: column; height: auto; overflow-y: auto; }
+            .panel { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); flex: none !important; }
+            
+            .panel:nth-child(1) { height: 550px; } /* Code & Prompt */
+            #sourceCode { height: 200px; }
+            .panel:nth-child(2) { height: 350px; } /* Logs & History */
+            .panel:nth-child(3) { height: 450px; } /* Preview */
+            
+            .btn-tool, .btn-secondary, #runBtn { padding: 10px 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>AI Code Studio</h1>
+        
+        <div class="btn-group">
+            <button class="btn-tool" onclick="document.getElementById('fileImportInput').click()" title="Import local HTML file">
+                <span>📂</span> Import
+            </button>
+            <button class="btn-tool" onclick="downloadHtml()" title="Export current code as HTML">
+                <span>📥</span> Export
+            </button>
+            <input type="file" id="fileImportInput" accept=".html,.htm,.txt" onchange="handleFileImport(this)">
+        </div>
+
+        <div class="api-input-group">
+            <input type="password" id="apiKey" placeholder="Gemini API Key" />
+            
+            <select id="modelSelect" onchange="saveModel()">
+                <option value="gemini-3-pro-preview">Gemini 3 Pro (Preview)</option>
+                <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            </select>
+
+            <button class="btn-secondary" onclick="saveKey()" title="Save Settings">💾</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Left: Code & Prompt -->
+        <div class="panel" style="flex: 1.2;">
+            <div class="panel-header">
+                1. Source Code
+                <div class="panel-header-actions">
+                    <button class="btn-secondary" onclick="refreshPreview()">▶️ Run</button>
+                    <button class="btn-secondary" onclick="safeClear()">🗑️ Clear</button>
+                </div>
+            </div>
+            <textarea id="sourceCode" placeholder="Paste HTML/JS/CSS here, or click Import..."></textarea>
+            
+            <div class="panel-header">2. Prompt (Text / Image / Web)</div>
+            
+            <div class="prompt-wrapper">
+                <div id="imagePreviewContainer"></div>
+                
+                <div class="prompt-row">
+                    <div class="prompt-tools-left">
+                        <button class="btn-secondary" onclick="document.getElementById('imgUploadInput').click()" title="Upload Image (Multimodal)">
+                            🖼️
+                        </button>
+                        <input type="file" id="imgUploadInput" accept="image/*" onchange="handleImageUpload(this)">
+                    </div>
+                    
+                    <textarea id="promptInput" placeholder="E.g., Fix the button style, or search for the latest Euro scores..."></textarea>
+                    <button onclick="runProcess()" id="runBtn">GO</button>
+                </div>
+                
+                <div class="context-options">
+                    <span>Context:</span>
+                    <label title="Include your previous prompts"><input type="checkbox" id="ctxUser" checked> User History</label>
+                    <label title="Include AI's previous replies"><input type="checkbox" id="ctxAi" checked> AI History</label>
+                    <label title="Enable Google Search (Grounding)" style="border-color: #4285f4; color: #4285f4;"><input type="checkbox" id="useSearch"> 🌐 Web Search</label>
+                    <span class="char-counter" id="historyCount">0 chars</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle: Logs & History -->
+        <div class="panel" style="flex: 0.8;">
+            <div class="panel-header">3. System Logs (Debug Context)</div>
+            <div id="logArea"></div>
+            
+            <div class="panel-header">
+                4. Time Machine
+                <button class="btn-secondary" onclick="renderHistory()">🔄</button>
+            </div>
+            <div id="historyArea">
+                <div style="padding:10px; color:#666; text-align:center;">No history yet</div>
+            </div>
+
+            <div class="panel-header">Raw AI Response</div>
+            <textarea id="aiResponse" readonly placeholder="AI raw output will appear here..."></textarea>
+        </div>
+
+        <!-- Right: Preview -->
+        <div class="panel" style="flex: 1.5; background-color: #1e1e1e; padding: 0;">
+            <div class="panel-header" style="padding: 5px 10px; background: #252526; border-bottom: 1px solid #3e3e42;">
+                5. Live Preview
+                <button class="btn-secondary" onclick="refreshPreview()">🔄</button>
+            </div>
+            <div id="previewContainer">
+                <iframe id="previewFrame"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingToast" class="loading-toast">
+        <div class="mini-spinner"></div>
+        <div class="loading-text" id="loadingText">AI is processing...</div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const sourceInput = document.getElementById('sourceCode');
+        const promptInput = document.getElementById('promptInput');
+        const aiResponseInput = document.getElementById('aiResponse');
+        const logArea = document.getElementById('logArea');
+        const historyArea = document.getElementById('historyArea');
+        const previewContainer = document.getElementById('previewContainer');
+        const apiKeyInput = document.getElementById('apiKey');
+        const modelSelect = document.getElementById('modelSelect');
+        const loadingToast = document.getElementById('loadingToast');
+        const loadingText = document.getElementById('loadingText');
+        const imgPreviewContainer = document.getElementById('imagePreviewContainer');
+        
+        // Checkboxes
+        const ctxUserCheck = document.getElementById('ctxUser');
+        const ctxAiCheck = document.getElementById('ctxAi');
+        const useSearchCheck = document.getElementById('useSearch');
+        const historyCountLabel = document.getElementById('historyCount');
+
+        // --- State Management ---
+        let codeHistory = []; 
+        let chatHistory = []; 
+        let currentImageBase64 = null; 
+        let currentImageMime = null;
+        const MAX_HISTORY = 50;
+        const MAX_CONTEXT_CHARS = 30000; 
+
+        // --- Initialization ---
+        window.onload = () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            const savedModel = localStorage.getItem('gemini_model');
+            if (savedKey) apiKeyInput.value = savedKey;
+            if (savedModel) modelSelect.value = savedModel;
+            else modelSelect.value = "gemini-3-pro-preview";
+            
+            addToHistory("Initial State");
+        };
+
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'iframe-error') {
+                log(`[Preview Error] Line ${event.data.line}: ${event.data.msg}`, "js-error");
+            }
+            if (event.data && event.data.type === 'iframe-log') {
+                log(`[Preview Console] ${event.data.msg}`, "info");
+            }
+        });
+
+        // --- File Operations ---
+        function downloadHtml() {
+            const code = sourceInput.value;
+            if (!code) { alert("No code to export."); return; }
+            const blob = new Blob([code], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `index_${new Date().getTime()}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log("HTML file exported.", "success");
+        }
+
+        function handleFileImport(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                sourceInput.value = e.target.result;
+                addToHistory(`Imported: ${file.name}`);
+                refreshPreview();
+                log(`File imported: ${file.name}`, "success");
+                input.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Image Handling (Multimodal) ---
+        function handleImageUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Full = e.target.result;
+                currentImageMime = base64Full.match(/data:(.*);base64,/)[1];
+                currentImageBase64 = base64Full.split(',')[1];
+                
+                renderImagePreview(base64Full);
+                log("Image loaded. It will be sent with your prompt.", "info");
+                input.value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderImagePreview(src) {
+            imgPreviewContainer.innerHTML = `
+                <div class="img-thumb-wrapper">
+                    <img src="${src}">
+                    <button class="img-remove" onclick="clearImage()">×</button>
+                </div>
+            `;
+        }
+
+        function clearImage() {
+            currentImageBase64 = null;
+            currentImageMime = null;
+            imgPreviewContainer.innerHTML = '';
+        }
+
+        // --- Settings ---
+        function saveKey() {
+            const key = apiKeyInput.value.trim();
+            const model = modelSelect.value;
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                localStorage.setItem('gemini_model', model);
+                log(`Settings saved. Model: ${model}`, "success");
+            } else {
+                alert("Please enter an API Key.");
+            }
+        }
+        function saveModel() { localStorage.setItem('gemini_model', modelSelect.value); }
+
+        // --- Logging & History ---
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logArea.appendChild(div);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function getRecentLogs() {
+            const entries = document.querySelectorAll('#logArea .log-entry');
+            let logText = "";
+            entries.forEach(entry => logText += entry.innerText + "\n");
+            if (logText.length === 0) return "No logs available.";
+            if (logText.length > 5000) return "...(truncated)...\n" + logText.substring(logText.length - 5000);
+            return logText;
+        }
+
+        function addToHistory(actionType) {
+            const code = sourceInput.value;
+            const timestamp = new Date().toLocaleTimeString();
+            const currentChatPointer = chatHistory.length;
+
+            codeHistory.unshift({ 
+                code: code, 
+                action: actionType, 
+                time: timestamp,
+                chatPointer: currentChatPointer 
+            });
+
+            if (codeHistory.length > MAX_HISTORY) codeHistory.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyArea.innerHTML = '';
+            if (codeHistory.length === 0) {
+                historyArea.innerHTML = '<div style="padding:10px; color:#666; text-align:center;">No history yet</div>';
+                return;
+            }
+            codeHistory.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <span><span class="tag">${item.action}</span> Len:${item.code.length}</span>
+                    <span class="time">${item.time}</span>
+                `;
+                div.onclick = () => restoreHistory(index);
+                historyArea.appendChild(div);
+            });
+        }
+
+        function restoreHistory(index) {
+            if (confirm('Are you sure? You will lose changes and chat memory after this point.')) {
+                const item = codeHistory[index];
+                sourceInput.value = item.code;
+                if (item.chatPointer !== undefined && item.chatPointer < chatHistory.length) {
+                    chatHistory = chatHistory.slice(0, item.chatPointer);
+                    log(`Chat memory rewound to turn ${item.chatPointer}`, "warn");
+                }
+                log(`Restored to: ${item.action}`, "warn");
+                refreshPreview();
+                updateHistoryCount();
+            }
+        }
+
+        function safeClear() {
+            if (sourceInput.value.trim() === "") return;
+            addToHistory("Backup before Clear");
+            sourceInput.value = "";
+            log("Code cleared (Backup saved)", "warn");
+        }
+
+        // --- Context Building ---
+        function buildContextString() {
+            let contextStr = "";
+            let totalChars = 0;
+            let tempBuffer = [];
+            
+            for (let i = chatHistory.length - 1; i >= 0; i--) {
+                const item = chatHistory[i];
+                if (item.role === 'user' && !ctxUserCheck.checked) continue;
+                if (item.role === 'model' && !ctxAiCheck.checked) continue;
+
+                const itemText = `\n[Previous ${item.role === 'user' ? 'User Request' : 'AI Response'}]\n${item.text}\n`;
+                if (totalChars + itemText.length > MAX_CONTEXT_CHARS) break;
+                
+                tempBuffer.unshift(itemText);
+                totalChars += itemText.length;
+            }
+
+            contextStr = tempBuffer.join("");
+            historyCountLabel.textContent = `${totalChars} / ${MAX_CONTEXT_CHARS}`;
+            return contextStr;
+        }
+
+        function updateHistoryCount() { buildContextString(); }
+        ctxUserCheck.addEventListener('change', updateHistoryCount);
+        ctxAiCheck.addEventListener('change', updateHistoryCount);
+
+        // --- AI Processing ---
+        async function runProcess() {
+            const key = apiKeyInput.value.trim();
+            const source = sourceInput.value;
+            const userPrompt = promptInput.value.trim();
+            const selectedModel = modelSelect.value;
+            const enableSearch = useSearchCheck.checked;
+
+            if (!key) { alert("Please enter your Google Gemini API Key."); return; }
+            if (!source && !userPrompt) { alert("Please enter code or a prompt."); return; }
+
+            addToHistory("Before AI Edit");
+
+            const debugLogs = getRecentLogs();
+            const historyContext = buildContextString();
+
+            const systemInstruction = `
+You are an expert coding assistant.
+You MUST return changes using SEARCH/REPLACE blocks.
+Format:
+<<<<<<< SEARCH
+[Code to be replaced]
+=======
+[New code]
+>>>>>>> REPLACE
+
+If the user asks for real-time information (like "latest score"), use the Google Search tool if available, then integrate the info into the code.
+`;
+
+            const textPrompt = `
+SOURCE CODE:
+\`\`\`
+${source}
+\`\`\`
+
+SYSTEM LOGS:
+${debugLogs}
+
+HISTORY:
+${historyContext}
+
+REQUEST: ${userPrompt}
+
+${systemInstruction}
+`;
+
+            const parts = [{ text: textPrompt }];
+            
+            if (currentImageBase64) {
+                parts.push({
+                    inlineData: {
+                        mimeType: currentImageMime,
+                        data: currentImageBase64
+                    }
+                });
+                clearImage();
+            }
+
+            const tools = [];
+            if (enableSearch) {
+                tools.push({ googleSearch: {} });
+            }
+
+            const apiVersion = 'v1beta'; 
+            const apiUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models/${selectedModel}:generateContent`;
+
+            const requestBody = {
+                contents: [{ parts: parts }],
+                generationConfig: { temperature: 0.5 }
+            };
+
+            if (tools.length > 0) {
+                requestBody.tools = tools;
+            }
+
+            loadingToast.style.display = 'flex';
+            loadingText.innerText = `${selectedModel} ${enableSearch ? '(Web)' : ''} processing...`;
+            log(`Sending request (Image: ${parts.length > 1 ? 'Yes' : 'No'}, Search: ${enableSearch})...`, "info");
+
+            try {
+                const response = await fetch(`${apiUrl}?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`API Error: ${response.status} ${errText}`);
+                }
+
+                const data = await response.json();
+                let aiText = "";
+                
+                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts) {
+                    aiText = data.candidates[0].content.parts.map(p => p.text).join('\n');
+                } else {
+                    throw new Error("Could not parse AI response.");
+                }
+
+                aiResponseInput.value = aiText;
+                log("Response received. Applying changes...", "success");
+
+                const success = processMerge(source, aiText);
+                
+                if (success) {
+                    log("✅ Code updated successfully!", "success");
+                    chatHistory.push({ role: 'user', text: userPrompt });
+                    chatHistory.push({ role: 'model', text: aiText });
+                    promptInput.value = ""; 
+                    addToHistory("After AI Edit");
+                    updateHistoryCount();
+                } else {
+                    log("⚠️ Partial merge failure. Please check raw response.", "warning");
+                }
+
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, "error");
+                alert("Execution Error:\n" + e.message);
+            } finally {
+                loadingToast.style.display = 'none';
+            }
+        }
+
+        function processMerge(sourceCode, aiText) {
+            const sourceLines = sourceCode.split('\n');
+            const regex = /<<<<<<< SEARCH\s*?\n([\s\S]*?)\n=======\s*?\n([\s\S]*?)\n>>>>>>> REPLACE/g;
+            const matches = [...aiText.matchAll(regex)];
+
+            if (matches.length === 0) {
+                if (aiText.includes('<!DOCTYPE html>') || aiText.includes('<html')) {
+                    log("Full code replacement detected...", "warn");
+                    sourceInput.value = aiText; 
+                    refreshPreview();
+                    return true;
+                }
+                if (aiText.length > 0) {
+                    log("AI replied with text only (no code changes).", "info");
+                    return true;
+                }
+                return false;
+            }
+
+            let edits = [];
+            let failCount = 0;
+
+            for (let m = 0; m < matches.length; m++) {
+                const searchContent = matches[m][1];
+                const replaceContent = matches[m][2];
+                const searchLines = searchContent.split('\n');
+                const loc = findBlockLocation(sourceLines, searchLines);
+
+                if (loc) {
+                    edits.push({ start: loc.startLine, end: loc.endLine, replaceText: replaceContent });
+                    log(`Block #${m + 1}: ✅ Matched`, "success");
+                } else {
+                    log(`Block #${m + 1}: ❌ Match Failed`, "error");
+                    failCount++;
+                }
+            }
+
+            edits.sort((a, b) => b.start - a.start);
+            for (let edit of edits) {
+                const newLines = edit.replaceText.split('\n');
+                const linesToRemove = edit.end - edit.start + 1;
+                sourceLines.splice(edit.start, linesToRemove, ...newLines);
+            }
+
+            const finalCode = sourceLines.join('\n');
+            sourceInput.value = finalCode;
+            refreshPreview();
+            return failCount === 0;
+        }
+
+        function findBlockLocation(sourceLines, searchBlockLines) {
+            const normalize = str => str.trim();
+            const searchFingerprint = searchBlockLines.map(normalize).filter(l => l.length > 0);
+            if (searchFingerprint.length === 0) return null;
+
+            for (let i = 0; i < sourceLines.length; i++) {
+                if (normalize(sourceLines[i]) !== searchFingerprint[0]) continue;
+                let isMatch = true;
+                let sourceOffset = 0;
+                let lastMatchedIndex = i;
+
+                for (let j = 0; j < searchFingerprint.length; j++) {
+                    while (i + sourceOffset < sourceLines.length && normalize(sourceLines[i + sourceOffset]).length === 0) {
+                        sourceOffset++;
+                    }
+                    if (i + sourceOffset >= sourceLines.length || normalize(sourceLines[i + sourceOffset]) !== searchFingerprint[j]) {
+                        isMatch = false; break;
+                    }
+                    lastMatchedIndex = i + sourceOffset;
+                    sourceOffset++;
+                }
+                if (isMatch) return { startLine: i, endLine: lastMatchedIndex };
+            }
+            return null;
+        }
+
+        function refreshPreview() {
+            let htmlContent = sourceInput.value;
+            const oldFrame = document.getElementById('previewFrame');
+            if (oldFrame) previewContainer.removeChild(oldFrame);
+
+            const newFrame = document.createElement('iframe');
+            newFrame.id = 'previewFrame';
+            newFrame.sandbox = "allow-scripts allow-same-origin allow-modals allow-forms";
+            previewContainer.appendChild(newFrame);
+
+            const errorScript = `
+                <script>
+                    window.onerror = function(msg, url, line, col, error) {
+                        window.parent.postMessage({type: 'iframe-error', msg: msg, line: line}, '*');
+                        return false;
+                    };
+                    console.log = function(...args) {
+                        window.parent.postMessage({type: 'iframe-log', msg: args.join(' ')}, '*');
+                    };
+                <\/script>
+            `;
+
+            if (htmlContent.includes('<head>')) {
+                htmlContent = htmlContent.replace('<head>', '<head>' + errorScript);
+            } else {
+                htmlContent = errorScript + htmlContent;
+            }
+
+            const doc = newFrame.contentDocument || newFrame.contentWindow.document;
+            doc.open();
+            doc.write(htmlContent);
+            doc.close();
+            log("Preview updated.", "info");
+        }
+    </script>
+</body>
+</html>
